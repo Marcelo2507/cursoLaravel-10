@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\DTO\CreateSupportDTO;
+use App\DTO\UpdateSupportDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUpdateSupport;
 use App\Models\Support;
+use App\Services\SupportService;
 use Illuminate\Http\Request;
-use App\Services\SupportServices;
 
 class SupportController extends Controller
 {
 
     public function __construct(
-        protected SupportServices $service
-    ){
-
-    }
+        protected SupportService $service
+    )   {}
 
     public function index(Request $request){
 
@@ -23,6 +23,8 @@ class SupportController extends Controller
         // $support = new Support(); -- Instancia chamada no construtor;
 
         // $supports = $support->all();
+
+
         $support = $this->service->getAll($request->filter);
 
         return view('admin/supports/index', compact('supports')); //ou '** ['supports' => $supports] **' vai dar na mesma;
@@ -47,11 +49,15 @@ class SupportController extends Controller
     }
 
     public function store(StoreUpdateSupport $request, Support $support){
-        $data = $request->validated();
-        $data['status'] = 'a';
+        // $data = $request->validated();
+        // $data['status'] = 'a';
 
-        $support = $support->create($data);
+        // $support = $support->create($data);
         
+        $this->service->new(
+            CreateSupportDTO::makeFromRequest($request)
+        );
+
         return redirect()->route('supports.index');
     }
 
@@ -69,9 +75,7 @@ class SupportController extends Controller
     }
 
     public function update(StoreUpdateSupport $request, Support $support, string $id){
-        if (!$support = $support->find($id)) {
-            return back();
-        }
+        
 
         // Serve tanto pra cadastro quanto atualização, porém se houver muitas colunas, se tornaria improdutivo;
         // $support->subject = $request->subject;
@@ -81,7 +85,13 @@ class SupportController extends Controller
         // $support->update($request->only([
         //     'subject', 'body'
         // ]));
-        $support->update($request->validated());
+
+        $support = $this->service->update(
+            UpdateSupportDTO::makeFromRequest($request)
+        );
+        if (!$support) {
+            return back();
+        }
 
         return redirect()->route('supports.index');
 
